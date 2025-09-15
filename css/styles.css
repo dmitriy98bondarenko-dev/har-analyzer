@@ -234,3 +234,12 @@ body {
     color: #999;
     border-left-color: #33cc33;
   }
+
+pre {
+  background: #2b2b2b10; /* легка підсвітка */
+  padding: 8px;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 0.9em;
+  font-family: monospace;
+}
