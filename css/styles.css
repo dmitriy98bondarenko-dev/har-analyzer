@@ -130,7 +130,12 @@ body {
     border-left: 4px solid #b68c65;
     color: #3e2f23;
     transition: background-color 0.2s;
+    cursor: pointer;
   }
+
+li:hover {
+  background-color: #f1e1d6;
+}
 
   .spoiler-content {
     display: none;
@@ -273,4 +278,29 @@ body.dark-theme #har-custom-events button:hover {
   height: 28px;     
   width: auto;     
   margin-right: 8px;
+}
+.copy-btn {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background-color: #db7093;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.copy-btn:hover {
+  background-color: #c65d83;
+}
+
+body.dark-theme .copy-btn {
+  background-color: #ff3366;
+}
+
+body.dark-theme .copy-btn:hover {
+  background-color: #cc0044;
 }
