@@ -130,7 +130,12 @@ body {
     border-left: 4px solid #b68c65;
     color: #3e2f23;
     transition: background-color 0.2s;
+    cursor: pointer;
   }
+
+li:hover {
+  background-color: #f1e1d6;
+}
 
   .spoiler-content {
     display: none;
@@ -234,3 +239,111 @@ body {
     color: #999;
     border-left-color: #33cc33;
   }
+
+pre {
+  background: #2b2b2b10; /* легка підсвітка */
+  padding: 8px;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 0.9em;
+  font-family: monospace;
+}
+#har-custom-events button {
+  padding: 8px 16px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background-color: #db7093;
+  color: white;
+  transition: background-color 0.3s ease;
+}
+
+#har-custom-events button:hover {
+  background-color: #c65d83;
+}
+
+body.dark-theme #har-custom-events button {
+  background-color: #ff3366;
+  color: #fff;
+}
+
+body.dark-theme #har-custom-events button:hover {
+  background-color: #cc0044;
+}
+
+.logo-icon {
+  height: 28px;     
+  width: auto;     
+  margin-right: 8px;
+}
+.copy-btn {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background-color: #db7093;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.copy-btn:hover {
+  background-color: #c65d83;
+}
+
+body.dark-theme .copy-btn {
+  background-color: #ff3366;
+}
+
+body.dark-theme .copy-btn:hover {
+  background-color: #cc0044;
+}
+
+.pdf-btn {
+  padding: 12px 28px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  background-color: #4caf50;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.pdf-btn:hover {
+  background-color: #43a047;
+}
+
+
+.toggle-btn {
+  padding: 8px 16px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background-color: #db7093;
+  color: white;
+  transition: background-color 0.3s ease;
+}
+
+.toggle-btn:hover {
+  background-color: #c65d83;
+}
+
+body.dark-theme .toggle-btn {
+  background-color: #ff3366;
+  color: #fff;
+}
+
+body.dark-theme .toggle-btn:hover {
+  background-color: #cc0044;
+}
