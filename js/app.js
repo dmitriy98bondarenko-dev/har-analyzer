@@ -493,28 +493,36 @@ function displayUnknownEvents(harEventsArray, knownEventsMap) {
     }
 }
 
-
-
 function displayHarCustomEvents(harEventsArray) {
     const container = document.getElementById('har-custom-events');
     if (!container) return;
+
+    // 🔹 при кожному виклику — очищаємо контейнер
     container.innerHTML = '';
 
-    const toggleBtn = document.createElement('button');
-    toggleBtn.className = 'toggle-btn';
+    // 🔹 перевіряємо чи кнопка вже є
+    let toggleBtn = document.querySelector('#toggle-duplicates-btn');
+    if (!toggleBtn) {
+        toggleBtn = document.createElement('button');
+        toggleBtn.id = 'toggle-duplicates-btn'; // унікальний id
+        toggleBtn.className = 'toggle-btn';
+        toggleBtn.textContent = 'Показати всі';
+        container.parentNode.insertBefore(toggleBtn, container);
+
+        // логіка перемикання тільки один раз
+        toggleBtn.addEventListener('click', () => {
+            hideDuplicates = !hideDuplicates;
+            toggleBtn.textContent = hideDuplicates ? 'Показати всі' : 'Приховати дублікати';
+            renderList();
+        });
+    }
 
     let hideDuplicates = true;
-    toggleBtn.textContent = 'Показати всі';
-
-    container.parentNode.insertBefore(toggleBtn, container);
-
 
     function renderList() {
         container.innerHTML = '';
-
         let eventsWithCustom = harEventsArray.filter(e => e.customProps);
 
-        // Якщо вмикаємо "приховати дублікати" → беремо тільки останній по timestamp
         if (hideDuplicates) {
             const latestEvents = new Map();
             for (const ev of eventsWithCustom) {
@@ -528,35 +536,17 @@ function displayHarCustomEvents(harEventsArray) {
         if (eventsWithCustom.length > 0) {
             eventsWithCustom.forEach(ev => {
                 const li = document.createElement('li');
-
-                // Назва івента з часом
                 const eventNameSpan = document.createElement('span');
                 const date = new Date(ev.timestamp || 0);
                 const timeStr = ev.timestamp ? ` (${date.toLocaleTimeString()})` : '';
                 eventNameSpan.textContent = ev.type + timeStr;
                 li.appendChild(eventNameSpan);
 
-                // Спойлер з JSON
                 const propsDiv = document.createElement('div');
                 propsDiv.className = 'spoiler-content';
-
                 const pre = document.createElement('pre');
                 pre.textContent = JSON.stringify(ev.customProps, null, 2);
                 propsDiv.appendChild(pre);
-
-                // 👉 кнопка Copy JSON
-                const copyBtn = document.createElement('button');
-                copyBtn.textContent = 'Copy JSON';
-                copyBtn.className = 'copy-btn';
-                copyBtn.addEventListener('click', (e) => {
-                    e.stopPropagation(); // щоб не згортати/розгортати спойлер
-                    navigator.clipboard.writeText(pre.textContent)
-                        .then(() => {
-                            copyBtn.textContent = 'Copied!';
-                            setTimeout(() => copyBtn.textContent = 'Copy JSON', 1500);
-                        });
-                });
-                propsDiv.appendChild(copyBtn);
 
                 li.appendChild(propsDiv);
 
@@ -576,14 +566,9 @@ function displayHarCustomEvents(harEventsArray) {
         }
     }
 
-    // Обробка кліку по кнопці
-        toggleBtn.addEventListener('click', () => {
-                hideDuplicates = !hideDuplicates;
-                toggleBtn.textContent = hideDuplicates ? 'Показати всі' : 'Приховати дублікати';
-                renderList();
-        });
     renderList();
 }
+
         
         function displayError(message) {
             missingEventList.innerHTML = '';
