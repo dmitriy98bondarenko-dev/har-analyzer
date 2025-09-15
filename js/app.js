@@ -513,57 +513,89 @@ function displayHarCustomEvents(harEventsArray) {
     if (!container) return;
     container.innerHTML = '';
 
-    const eventsWithCustom = harEventsArray.filter(e => e.customProps);
+    // 🔘 додаємо кнопку "Приховати дублікати / Показати всі"
+    const toggleBtn = document.createElement('button');
+    toggleBtn.textContent = 'Приховати дублікати';
+    toggleBtn.className = 'toggle-btn';
+    container.parentNode.insertBefore(toggleBtn, container);
 
-    if (eventsWithCustom.length > 0) {
-        eventsWithCustom.forEach(ev => {
+    let hideDuplicates = true;
+
+    function renderList() {
+        container.innerHTML = '';
+
+        let eventsWithCustom = harEventsArray.filter(e => e.customProps);
+
+        // Якщо вмикаємо "приховати дублікати" → беремо тільки останній по timestamp
+        if (hideDuplicates) {
+            const latestEvents = new Map();
+            for (const ev of eventsWithCustom) {
+                if (!latestEvents.has(ev.type) || (ev.timestamp || 0) > (latestEvents.get(ev.type).timestamp || 0)) {
+                    latestEvents.set(ev.type, ev);
+                }
+            }
+            eventsWithCustom = [...latestEvents.values()];
+        }
+
+        if (eventsWithCustom.length > 0) {
+            eventsWithCustom.forEach(ev => {
+                const li = document.createElement('li');
+
+                // Назва івента з часом
+                const eventNameSpan = document.createElement('span');
+                const date = new Date(ev.timestamp || 0);
+                const timeStr = ev.timestamp ? ` (${date.toLocaleTimeString()})` : '';
+                eventNameSpan.textContent = ev.type + timeStr;
+                li.appendChild(eventNameSpan);
+
+                // Спойлер з JSON
+                const propsDiv = document.createElement('div');
+                propsDiv.className = 'spoiler-content';
+
+                const pre = document.createElement('pre');
+                pre.textContent = JSON.stringify(ev.customProps, null, 2);
+                propsDiv.appendChild(pre);
+
+                // 👉 кнопка Copy JSON
+                const copyBtn = document.createElement('button');
+                copyBtn.textContent = 'Copy JSON';
+                copyBtn.className = 'copy-btn';
+                copyBtn.addEventListener('click', (e) => {
+                    e.stopPropagation(); // щоб не згортати/розгортати спойлер
+                    navigator.clipboard.writeText(pre.textContent)
+                        .then(() => {
+                            copyBtn.textContent = 'Copied!';
+                            setTimeout(() => copyBtn.textContent = 'Copy JSON', 1500);
+                        });
+                });
+                propsDiv.appendChild(copyBtn);
+
+                li.appendChild(propsDiv);
+
+                li.addEventListener('click', () => {
+                    const isVisible = propsDiv.style.display === 'block';
+                    propsDiv.style.display = isVisible ? 'none' : 'block';
+                    li.classList.toggle('active', !isVisible);
+                });
+
+                container.appendChild(li);
+            });
+        } else {
             const li = document.createElement('li');
-
-            // Назва івента з часом
-            const eventNameSpan = document.createElement('span');
-            const date = new Date(ev.timestamp || 0);
-            const timeStr = ev.timestamp ? ` (${date.toLocaleTimeString()})` : '';
-            eventNameSpan.textContent = ev.type + timeStr;
-            li.appendChild(eventNameSpan);
-
-            // Спойлер з JSON
-            const propsDiv = document.createElement('div');
-            propsDiv.className = 'spoiler-content';
-
-            const pre = document.createElement('pre');
-            pre.textContent = JSON.stringify(ev.customProps, null, 2);
-            propsDiv.appendChild(pre);
-
-            
-            const copyBtn = document.createElement('button');
-            copyBtn.textContent = 'Copy JSON';
-            copyBtn.className = 'copy-btn';
-            copyBtn.addEventListener('click', (e) => {
-                e.stopPropagation(); // щоб не згортати/розгортати спойлер
-                navigator.clipboard.writeText(pre.textContent)
-                  .then(() => {
-                      copyBtn.textContent = 'Copied!';
-                      setTimeout(() => copyBtn.textContent = 'Copy JSON', 1500);
-                  });
-            });
-            propsDiv.appendChild(copyBtn);
-
-            li.appendChild(propsDiv);
-
-            li.addEventListener('click', () => {
-                const isVisible = propsDiv.style.display === 'block';
-                propsDiv.style.display = isVisible ? 'none' : 'block';
-                li.classList.toggle('active', !isVisible);
-            });
-
+            li.className = 'empty';
+            li.textContent = 'У HAR-файлі немає івентів з custom_properties.';
             container.appendChild(li);
-        });
-    } else {
-        const li = document.createElement('li');
-        li.className = 'empty';
-        li.textContent = 'У HAR-файлі немає івентів з custom_properties.';
-        container.appendChild(li);
+        }
     }
+
+    // Обробка кліку по кнопці
+    toggleBtn.addEventListener('click', () => {
+        hideDuplicates = !hideDuplicates;
+        toggleBtn.textContent = hideDuplicates ? 'Приховати дублікати' : 'Показати всі';
+        renderList();
+    });
+
+    renderList();
 }
 
 
@@ -583,3 +615,65 @@ function displayHarCustomEvents(harEventsArray) {
             unknownEventList.appendChild(li.cloneNode(true));
             deviceInfoDetails.appendChild(li);
         }
+
+document.getElementById('generate-pdf').addEventListener('click', generatePDF);
+
+async function generatePDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    let y = 10; // відступ по вертикалі
+
+    // Заголовок
+    doc.setFontSize(16);
+    doc.text("Звіт аналізу HAR-файлу", 10, y);
+    y += 10;
+
+    // Пристрій та версія
+    doc.setFontSize(12);
+    doc.text("Інформація про пристрій:", 10, y);
+    y += 8;
+
+    const deviceInfo = document.getElementById('device-info-details').innerText;
+    doc.text(deviceInfo || "Не знайдено", 10, y);
+    y += 15;
+
+    // Пропущені івенти
+    doc.setFontSize(12);
+    doc.text("Події з таблиці, яких немає у файлі:", 10, y);
+    y += 8;
+    const missing = [...document.getElementById('missing-event-list').querySelectorAll("li")]
+        .map(li => li.innerText);
+    missing.forEach(ev => {
+        doc.text(`- ${ev}`, 10, y);
+        y += 6;
+    });
+    y += 8;
+
+    // Невідомі івенти
+    doc.text("Події, які знайдено у файлі, але їх немає в таблиці:", 10, y);
+    y += 8;
+    const unknown = [...document.getElementById('unknown-event-list').querySelectorAll("li")]
+        .map(li => li.innerText);
+    unknown.forEach(ev => {
+        doc.text(`- ${ev}`, 10, y);
+        y += 6;
+    });
+    y += 8;
+
+    // Івенти з custom_properties
+    doc.text("Івенти з HAR-файлу з custom_properties:", 10, y);
+    y += 8;
+    const customEvents = [...document.getElementById('har-custom-events').querySelectorAll("li")];
+    customEvents.forEach(ev => {
+        const text = ev.innerText.split("\n");
+        text.forEach(line => {
+            doc.text(line, 10, y);
+            y += 6;
+        });
+        y += 4;
+    });
+
+    // Зберігаємо PDF
+    doc.save("har-report.pdf");
+}
