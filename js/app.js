@@ -69,7 +69,8 @@
                 
                 const knownEventsMap = new Map();
                 const rows = csvText.split('\n');
-                const startIndex = rows[0].toLowerCase().includes("event_type") ? 1 : 0;
+                    const headerRow = rows[0].toLowerCase();
+                    const startIndex = (headerRow.includes("event_type") || headerRow.includes("назва івенту")) ? 1 : 0;
 
                 for (let i = startIndex; i < rows.length; i++) {
                     const row = rows[i].trim();
