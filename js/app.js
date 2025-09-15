@@ -167,7 +167,8 @@ displayInvalidEvents(invalidEvents);
 
 
                         // После анализа отправляем отчет
-                        sendEmailReport(missingEvents, unknownEvents, userUrl, deviceInfo, appVersion, userId);
+                        sendEmailReport(missingEvents, unknownEvents, userUrl, deviceInfo, appVersion, userId, selectedHarFile, statusMessage);
+
 
                     } catch (error) {
                         displayError("Помилка! Не вдалося прочитати файл. Переконайтеся, що це коректний .har (JSON) файл.");
