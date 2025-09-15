@@ -307,72 +307,70 @@ function findUserId(harData) {
 }
 
         function findEventTypesAdvanced(harData) {
-    const foundEvents = [];
-    const searchKey = 'event_type';
-
-    function recursiveSearch(obj) {
-        if (typeof obj !== 'object' || obj === null) return;
-
-        if (searchKey in obj) {
-            foundEvents.push({
-                type: String(obj[searchKey]),
-                customProps: obj.custom_properties || null
-            });
-        }
-
-        for (const k in obj) {
-            if (obj.hasOwnProperty(k)) recursiveSearch(obj[k]);
-        }
-    }
-
-    function parseUrlEncoded(text) {
-        try {
-            const params = new URLSearchParams(text);
-            if (params.has(searchKey)) {
-                foundEvents.push({
-                    type: params.get(searchKey),
-                    customProps: null // urlencoded точно не містить вкладених custom_properties
-                });
-            }
-        } catch(e) { /* ігноруємо */ }
-    }
-
-    if (harData && harData.log && harData.log.entries) {
-        for (const entry of harData.log.entries) {
-            // 1. шукаємо у URL параметрах
-            if (entry.request && entry.request.url) {
-                try {
-                    const url = new URL(entry.request.url);
-                    if (url.searchParams.has(searchKey)) {
-                        foundEvents.push({
-                            type: url.searchParams.get(searchKey),
-                            customProps: null
-                        });
-                    }
-                } catch(e) { /* ігноруємо */ }
-            }
-
-            // 2. шукаємо у тілі запиту
-            if (entry.request && entry.request.postData && entry.request.postData.text) {
-                const text = entry.request.postData.text;
-                try {
+                const foundEvents = [];
+                const searchKey = 'event_type';
+                
+                function recursiveSearch(obj) {
+                        if (typeof obj !== 'object' || obj === null) return;
+                        
+                        if (searchKey in obj) {
+                                foundEvents.push({
+                                        type: String(obj[searchKey]),
+                                        customProps: obj.custom_properties || null,
+                                        timestamp: obj.event_timestamp || null
+                                });
+                        }
+                        for (const k in obj) {
+                                if (obj.hasOwnProperty(k)) recursiveSearch(obj[k]);
+                        }
+                }
+                
+                function parseUrlEncoded(text) {
+                        try {
+                                const params = new URLSearchParams(text);
+                                if (params.has(searchKey)) {
+                                        foundEvents.push({
+                                                type: params.get(searchKey),
+                                                customProps: null,
+                                                timestamp: null
+                                        });
+                                }
+                        } catch(e) { /* ігноруємо */ }
+                }
+                if (harData?.log?.entries) {
+                        for (const entry of harData.log.entries) {
+                                if (entry.request?.url) {
+                                        try {
+                                                const url = new URL(entry.request.url);
+                                                if (url.searchParams.has(searchKey)) {
+                                                        foundEvents.push({
+                                                                type: url.searchParams.get(searchKey),
+                                                                customProps: null,
+                                                                timestamp: null
+                                                        });
+                                                }
+                                        } catch(e) {}
+                                }
+                                if (entry.request?.postData?.text) {
+                                  const text = entry.request.postData.text;
+                                  try {
                     recursiveSearch(JSON.parse(text));
                 } catch (e) {
                     parseUrlEncoded(text);
                 }
             }
 
-            // 3. шукаємо у тілі відповіді
-            if (entry.response && entry.response.content && entry.response.content.text) {
+            if (entry.response?.content?.text) {
                 try {
                     recursiveSearch(JSON.parse(entry.response.content.text));
-                } catch (e) { /* ігноруємо */ }
+                } catch (e) {}
             }
         }
     }
 
     return foundEvents;
 }
+
 
         function displayDeviceInfo(deviceInfo, appVersion, userId) {
             deviceInfoDetails.innerHTML = '';
@@ -518,37 +516,73 @@ function displayHarCustomEvents(harEventsArray) {
     }
     container.innerHTML = '';
 
-    const eventsWithCustom = harEventsArray.filter(e => e.customProps);
+    let hideDuplicates = false;
 
-    if (eventsWithCustom.length > 0) {
-        eventsWithCustom.forEach(ev => {
-            const li = document.createElement('li');
+    // Кнопка для приховування дублів
+    const toggleBtn = document.createElement('button');
+    toggleBtn.textContent = 'Приховати дублі';
+    toggleBtn.style.marginBottom = '10px';
+    toggleBtn.onclick = () => {
+        hideDuplicates = !hideDuplicates;
+        renderList();
+        toggleBtn.textContent = hideDuplicates ? 'Показати всі' : 'Приховати дублі';
+    };
+    container.appendChild(toggleBtn);
 
-            const eventNameSpan = document.createElement('span');
-            eventNameSpan.textContent = ev.type;
-            li.appendChild(eventNameSpan);
+    function renderList() {
+        // очищаємо все крім кнопки
+        container.querySelectorAll('li').forEach(li => li.remove());
 
-            const propsDiv = document.createElement('div');
+        let eventsWithCustom = harEventsArray.filter(e => e.customProps);
+
+        if (hideDuplicates) {
+            const latestEvents = new Map();
+            for (const ev of eventsWithCustom) {
+                if (!latestEvents.has(ev.type) || (ev.timestamp > latestEvents.get(ev.type).timestamp)) {
+                    latestEvents.set(ev.type, ev);
+                }
+            }
+            eventsWithCustom = Array.from(latestEvents.values());
+        }
+
+        if (eventsWithCustom.length > 0) {
+            eventsWithCustom.forEach(ev => {
+                const li = document.createElement('li');
+
+                const eventNameSpan = document.createElement('span');
+                let timeStr = '';
+                if (ev.timestamp) {
+                    const date = new Date(ev.timestamp);
+                    timeStr = ` (${date.toLocaleTimeString('uk-UA')})`;
+                }
+                eventNameSpan.textContent = ev.type + timeStr;
+                li.appendChild(eventNameSpan);
+
+                const propsDiv = document.createElement('div');
                 propsDiv.className = 'spoiler-content';
-                propsDiv.innerHTML = `<pre><code>custom_properties: ${JSON.stringify(ev.customProps, null, 2)}</code></pre>`;
+                propsDiv.innerHTML = `<pre><code>${JSON.stringify(ev.customProps, null, 2)}</code></pre>`;
                 li.appendChild(propsDiv);
 
+                li.addEventListener('click', () => {
+                    const isVisible = propsDiv.style.display === 'block';
+                    propsDiv.style.display = isVisible ? 'none' : 'block';
+                    li.classList.toggle('active', !isVisible);
+                });
 
-            li.addEventListener('click', () => {
-                const isVisible = propsDiv.style.display === 'block';
-                propsDiv.style.display = isVisible ? 'none' : 'block';
-                li.classList.toggle('active', !isVisible);
+                container.appendChild(li);
             });
-
+        } else {
+            const li = document.createElement('li');
+            li.className = 'empty';
+            li.textContent = 'У HAR-файлі немає івентів з custom_properties.';
             container.appendChild(li);
-        });
-    } else {
-        const li = document.createElement('li');
-        li.className = 'empty';
-        li.textContent = 'У HAR-файлі немає івентів з custom_properties.';
-        container.appendChild(li);
+        }
     }
+
+    renderList();
 }
+
+
 
         
         function displayError(message) {
