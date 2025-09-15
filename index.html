@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Аналізатор .har файлів</title>
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/styles.css">
+  <!-- EmailJS -->
+  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+</head>
+<body>
+  <button id="theme-toggle">🌓 Змінити тему</button>
+
+  <h1>.HAR Checker 🕵🏻‍♂️</h1>
+
+  <div class="input-group">
+    <label for="sheet-url-input">URL Google Таблиці:</label>
+    <input type="url" id="sheet-url-input" placeholder="Вставте посилання на публічну Google Таблицю...">
+  </div>
+
+  <div class="controls-wrapper">
+    <label for="har-file-input" class="file-upload-label">Оберіть .har файл</label>
+    <input type="file" id="har-file-input" accept=".har">
+    <button id="compare-button" disabled>Зробити порівняння</button>
+  </div>
+
+  <div id="file-name">Файл не обрано</div>
+  <div id="status-message"></div>
+
+  <div id="device-info-container" class="results-section">
+    <h2>Інформація про пристрій та версію:</h2>
+    <ul id="device-info-details">
+      <li class="empty">Інформація не знайдена...</li>
+    </ul>
+  </div>
+
+  <div id="results-container" class="results-section">
+    <h2>Події з таблиці, які не знайдено у файлі:</h2>
+    <ul id="missing-event-list">
+      <li class="empty">Тут буде список пропущених подій...</li>
+    </ul>
+  </div>
+
+  <div id="unknown-results-container" class="results-section">
+    <h2>Події, знайдені у файлі, але відсутні у таблиці:</h2>
+    <ul id="unknown-event-list">
+      <li class="empty">Тут буде список нових/невідомих подій...</li>
+    </ul>
+  </div>
+
+  <!-- JS -->
+  <script src="js/email.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/theme.js"></script>
+</body>
+</html>
