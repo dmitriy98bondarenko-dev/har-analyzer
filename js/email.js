@@ -7,9 +7,21 @@ const EMAILJS_USER_ID = 'HZBtYKdBCpFPC-zG8';
   emailjs.init(EMAILJS_USER_ID);
 })();
 
-function sendEmailReport(missingEvents, unknownEvents, sheetUrl, deviceInfo, appVersion, userId, selectedHarFile, statusMessage) {
+function sendEmailReport(
+  missingEvents,
+  unknownEvents,
+  sheetUrl,
+  deviceInfo,
+  appVersion,
+  userId,
+  selectedHarFile,
+  statusMessage
+) {
   const reportDate = new Date().toLocaleString('uk-UA');
-  const subject = `Звіт від ${reportDate} для файлу: ${selectedHarFile.name}`;
+
+  // ✅ захист від undefined
+  const fileName = selectedHarFile ? selectedHarFile.name : 'Невідомий файл';
+  const subject = `Звіт від ${reportDate} для файлу: ${fileName}`;
 
   // Формуємо HTML для email
   let deviceInfoHtml = '<h3>Інформація про пристрій та версію:</h3>';
@@ -45,7 +57,7 @@ function sendEmailReport(missingEvents, unknownEvents, sheetUrl, deviceInfo, app
 
   const templateParams = {
     subject: subject,
-    har_file_name: selectedHarFile.name,
+    har_file_name: fileName, // ✅ тут тепер теж безпечна змінна
     sheet_url: sheetUrl,
     email_body_html: deviceInfoHtml + missingEventsHtml + unknownEventsHtml,
     to_email: 'dmitriy98bondarenko@gmail.com'
