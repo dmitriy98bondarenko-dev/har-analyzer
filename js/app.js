@@ -407,38 +407,49 @@ function findUserId(harData) {
         }
 
         function displayMissingEvents(events, knownEventsMap) {
-            missingEventList.innerHTML = '';
+    missingEventList.innerHTML = '';
 
-            if (events.length > 0) {
-                events.forEach(eventType => {
-                    const li = document.createElement('li');
-                    
-                    const eventNameSpan = document.createElement('span');
-                    eventNameSpan.textContent = eventType;
-                    li.appendChild(eventNameSpan);
-                    
-                    const description = knownEventsMap.get(eventType) || 'Опис для цієї події не знайдено в таблиці.';
-                    
-                    const spoilerDiv = document.createElement('div');
-                    spoilerDiv.className = 'spoiler-content';
-                    spoilerDiv.textContent = description;
-                    li.appendChild(spoilerDiv);
-                    
-                    li.addEventListener('click', () => {
-                        const isVisible = spoilerDiv.style.display === 'block';
-                        spoilerDiv.style.display = isVisible ? 'none' : 'block';
-                        li.classList.toggle('active', !isVisible);
-                    });
+    if (events.length > 0) {
+        events.forEach(eventType => {
+            const li = document.createElement('li');
 
-                    missingEventList.appendChild(li);
-                });
-            } else {
-                const li = document.createElement('li');
-                li.className = 'empty';
-                li.textContent = 'Пропущених подій немає. Всі події з таблиці були знайдені у файлі.';
-                missingEventList.appendChild(li);
+            const eventNameSpan = document.createElement('span');
+            eventNameSpan.textContent = eventType;
+            li.appendChild(eventNameSpan);
+
+            const info = knownEventsMap.get(eventType);
+            const description = info?.description || 'Опис для цієї події не знайдено в таблиці.';
+
+            const spoilerDiv = document.createElement('div');
+            spoilerDiv.className = 'spoiler-content';
+
+            // Основний опис
+            let spoilerHtml = description;
+
+            // Якщо є custom_properties у таблиці → додаємо форматований блок
+            if (info?.customProps) {
+                spoilerHtml += `\n\nОчікувані custom_properties:\n${JSON.stringify(info.customProps, null, 2)}`;
             }
-        }
+
+            spoilerDiv.textContent = spoilerHtml;
+            li.appendChild(spoilerDiv);
+
+            li.addEventListener('click', () => {
+                const isVisible = spoilerDiv.style.display === 'block';
+                spoilerDiv.style.display = isVisible ? 'none' : 'block';
+                li.classList.toggle('active', !isVisible);
+            });
+
+            missingEventList.appendChild(li);
+        });
+    } else {
+        const li = document.createElement('li');
+        li.className = 'empty';
+        li.textContent = 'Пропущених подій немає. Всі події з таблиці були знайдені у файлі.';
+        missingEventList.appendChild(li);
+    }
+}
+
 
         function displayUnknownEvents(events) {
             unknownEventList.innerHTML = '';
@@ -459,6 +470,10 @@ function findUserId(harData) {
         }
 function displayInvalidEvents(events) {
     const container = document.getElementById('invalid-event-list');
+         if (!container) {
+    console.warn('invalid-event-list not found in DOM');
+    return;
+  }
     container.innerHTML = '';
 
     if (events.length > 0) {
