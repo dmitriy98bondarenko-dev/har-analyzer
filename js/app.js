@@ -163,7 +163,7 @@ const unknownEvents = harEventsArray
     .map(e => e.type)
     .filter(eventType => !knownEventsMap.has(eventType));
                             displayMissingEvents(missingEvents, knownEventsMap);
-                            displayUnknownEvents(unknownEvents);
+                            displayUnknownEvents(harEventsArray, knownEventsMap);
                             displayHarCustomEvents(harEventsArray);
 
 
@@ -414,8 +414,17 @@ function findUserId(harData) {
             const li = document.createElement('li');
 
             const eventNameSpan = document.createElement('span');
-            eventNameSpan.textContent = eventType;
-            li.appendChild(eventNameSpan);
+                const match = [...document.querySelectorAll("#har-custom-events li")]
+                        .map(li => li.dataset)
+                        .find(d => d.type === eventType);
+                let timeStr = "";
+                if (match && match.timestamp) {
+                        const date = new Date(Number(match.timestamp));
+                        timeStr = ` (${date.toLocaleTimeString()})`;
+                }
+                eventNameSpan.textContent = eventType + timeStr;
+                li.appendChild(eventNameSpan);
+
 
             const info = knownEventsMap.get(eventType);
             const description = info?.description || 'Опис для цієї події не знайдено в таблиці.';
@@ -450,24 +459,62 @@ function findUserId(harData) {
     }
 }
 
+function displayUnknownEvents(harEventsArray, knownEventsMap) {
+    unknownEventList.innerHTML = '';
 
-        function displayUnknownEvents(events) {
-            unknownEventList.innerHTML = '';
+    // Створюємо кнопку
+    const toggleBtn = document.createElement('button');
+        toggleBtn.textContent = 'Показати всі';
+        toggleBtn.className = 'toggle-btn';
+        
+    unknownEventList.parentNode.insertBefore(toggleBtn, unknownEventList);
 
-            if (events.length > 0) {
-                 const uniqueUnknownEvents = [...new Set(events)];
-                uniqueUnknownEvents.forEach(eventType => {
-                    const li = document.createElement('li');
-                    li.textContent = eventType;
-                    unknownEventList.appendChild(li);
-                });
-            } else {
-                const li = document.createElement('li');
-                li.className = 'empty';
-                li.textContent = 'Нових/невідомих подій у файлі не знайдено.';
-                unknownEventList.appendChild(li);
+    let hideDuplicates = true;
+
+    function renderList() {
+        unknownEventList.innerHTML = '';
+
+        // Фільтруємо тільки ті, яких немає в таблиці
+        let unknownEventsRaw = harEventsArray.filter(ev => !knownEventsMap.has(ev.type));
+
+        if (unknownEventsRaw.length > 0) {
+            if (hideDuplicates) {
+                // Беремо тільки останній по timestamp для кожного type
+                const latestEvents = new Map();
+                for (const ev of unknownEventsRaw) {
+                    if (
+                        !latestEvents.has(ev.type) ||
+                        (ev.timestamp || 0) > (latestEvents.get(ev.type).timestamp || 0)
+                    ) {
+                        latestEvents.set(ev.type, ev);
+                    }
+                }
+                unknownEventsRaw = [...latestEvents.values()];
             }
+
+            unknownEventsRaw.forEach(ev => {
+                const li = document.createElement('li');
+                const date = ev.timestamp ? new Date(Number(ev.timestamp)) : null;
+                const timeStr = date ? ` (${date.toLocaleTimeString()})` : '';
+                li.textContent = ev.type + timeStr;
+                unknownEventList.appendChild(li);
+            });
+        } else {
+            const li = document.createElement('li');
+            li.className = 'empty';
+            li.textContent = 'Нових/невідомих подій у файлі не знайдено.';
+            unknownEventList.appendChild(li);
         }
+    }
+
+    toggleBtn.addEventListener('click', () => {
+        hideDuplicates = !hideDuplicates;
+        toggleBtn.textContent = hideDuplicates ? 'Приховати дублікати' : 'Показати всі';
+        renderList();
+    });
+
+    renderList();
+}
 
 
 function displayHarCustomEvents(harEventsArray) {
@@ -559,9 +606,6 @@ function displayHarCustomEvents(harEventsArray) {
         });
     renderList();
 }
-
-
-
         
         function displayError(message) {
             missingEventList.innerHTML = '';
@@ -577,65 +621,3 @@ function displayHarCustomEvents(harEventsArray) {
             unknownEventList.appendChild(li.cloneNode(true));
             deviceInfoDetails.appendChild(li);
         }
-
-document.getElementById('generate-pdf').addEventListener('click', generatePDF);
-
-async function generatePDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-
-    let y = 10; // відступ по вертикалі
-
-    // Заголовок
-    doc.setFontSize(16);
-    doc.text("Звіт аналізу HAR-файлу", 10, y);
-    y += 10;
-
-    // Пристрій та версія
-    doc.setFontSize(12);
-    doc.text("Інформація про пристрій:", 10, y);
-    y += 8;
-
-    const deviceInfo = document.getElementById('device-info-details').innerText;
-    doc.text(deviceInfo || "Не знайдено", 10, y);
-    y += 15;
-
-    // Пропущені івенти
-    doc.setFontSize(12);
-    doc.text("Події з таблиці, яких немає у файлі:", 10, y);
-    y += 8;
-    const missing = [...document.getElementById('missing-event-list').querySelectorAll("li")]
-        .map(li => li.innerText);
-    missing.forEach(ev => {
-        doc.text(`- ${ev}`, 10, y);
-        y += 6;
-    });
-    y += 8;
-
-    // Невідомі івенти
-    doc.text("Події, які знайдено у файлі, але їх немає в таблиці:", 10, y);
-    y += 8;
-    const unknown = [...document.getElementById('unknown-event-list').querySelectorAll("li")]
-        .map(li => li.innerText);
-    unknown.forEach(ev => {
-        doc.text(`- ${ev}`, 10, y);
-        y += 6;
-    });
-    y += 8;
-
-    // Івенти з custom_properties
-    doc.text("Івенти з HAR-файлу з custom_properties:", 10, y);
-    y += 8;
-    const customEvents = [...document.getElementById('har-custom-events').querySelectorAll("li")];
-    customEvents.forEach(ev => {
-        const text = ev.innerText.split("\n");
-        text.forEach(line => {
-            doc.text(line, 10, y);
-            y += 6;
-        });
-        y += 4;
-    });
-
-    // Зберігаємо PDF
-    doc.save("har-report.pdf");
-}
