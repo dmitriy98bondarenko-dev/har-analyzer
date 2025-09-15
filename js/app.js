@@ -462,59 +462,37 @@ function findUserId(harData) {
 function displayUnknownEvents(harEventsArray, knownEventsMap) {
     unknownEventList.innerHTML = '';
 
-    // Створюємо кнопку
-    const toggleBtn = document.createElement('button');
-        toggleBtn.textContent = 'Показати всі';
-        toggleBtn.className = 'toggle-btn';
-        
-    unknownEventList.parentNode.insertBefore(toggleBtn, unknownEventList);
+    // Фільтруємо тільки ті, яких немає в таблиці
+    let unknownEventsRaw = harEventsArray.filter(ev => !knownEventsMap.has(ev.type));
 
-    let hideDuplicates = true;
-
-    function renderList() {
-        unknownEventList.innerHTML = '';
-
-        // Фільтруємо тільки ті, яких немає в таблиці
-        let unknownEventsRaw = harEventsArray.filter(ev => !knownEventsMap.has(ev.type));
-
-        if (unknownEventsRaw.length > 0) {
-            if (hideDuplicates) {
-                // Беремо тільки останній по timestamp для кожного type
-                const latestEvents = new Map();
-                for (const ev of unknownEventsRaw) {
-                    if (
-                        !latestEvents.has(ev.type) ||
-                        (ev.timestamp || 0) > (latestEvents.get(ev.type).timestamp || 0)
-                    ) {
-                        latestEvents.set(ev.type, ev);
-                    }
-                }
-                unknownEventsRaw = [...latestEvents.values()];
+    if (unknownEventsRaw.length > 0) {
+        // Беремо тільки останній по timestamp для кожного type
+        const latestEvents = new Map();
+        for (const ev of unknownEventsRaw) {
+            if (
+                !latestEvents.has(ev.type) ||
+                (ev.timestamp || 0) > (latestEvents.get(ev.type).timestamp || 0)
+            ) {
+                latestEvents.set(ev.type, ev);
             }
-
-            unknownEventsRaw.forEach(ev => {
-                const li = document.createElement('li');
-                const date = ev.timestamp ? new Date(Number(ev.timestamp)) : null;
-                const timeStr = date ? ` (${date.toLocaleTimeString()})` : '';
-                li.textContent = ev.type + timeStr;
-                unknownEventList.appendChild(li);
-            });
-        } else {
-            const li = document.createElement('li');
-            li.className = 'empty';
-            li.textContent = 'Нових/невідомих подій у файлі не знайдено.';
-            unknownEventList.appendChild(li);
         }
+        unknownEventsRaw = [...latestEvents.values()];
+
+        unknownEventsRaw.forEach(ev => {
+            const li = document.createElement('li');
+            const date = ev.timestamp ? new Date(Number(ev.timestamp)) : null;
+            const timeStr = date ? ` (${date.toLocaleTimeString()})` : '';
+            li.textContent = ev.type + timeStr;
+            unknownEventList.appendChild(li);
+        });
+    } else {
+        const li = document.createElement('li');
+        li.className = 'empty';
+        li.textContent = 'Нових/невідомих подій у файлі не знайдено.';
+        unknownEventList.appendChild(li);
     }
-
-    toggleBtn.addEventListener('click', () => {
-        hideDuplicates = !hideDuplicates;
-        toggleBtn.textContent = hideDuplicates ? 'Приховати дублікати' : 'Показати всі';
-        renderList();
-    });
-
-    renderList();
 }
+
 
 
 function displayHarCustomEvents(harEventsArray) {
