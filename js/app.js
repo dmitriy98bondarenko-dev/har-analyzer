@@ -163,7 +163,6 @@ const unknownEvents = harEventsArray
     .filter(eventType => !knownEventsMap.has(eventType));
                             displayMissingEvents(missingEvents, knownEventsMap);
                             displayUnknownEvents(unknownEvents);
-                            displayInvalidEvents(invalidEvents);
                             displayHarCustomEvents(harEventsArray);
 
 
@@ -469,57 +468,20 @@ function findUserId(harData) {
             }
         }
 
-function displayInvalidEvents(events) {
-    const container = document.getElementById('invalid-event-list');
-    if (!container) {
-        console.warn('invalid-event-list not found in DOM');
-        return;
-    }
-    container.innerHTML = '';
 
-    if (events.length > 0) {
-        events.forEach(ev => {
-            const li = document.createElement('li');
-
-            const title = document.createElement('strong');
-            title.textContent = ev.type;
-            li.appendChild(title);
-
-            const spoilerDiv = document.createElement('div');
-            spoilerDiv.className = 'spoiler-content';
-            spoilerDiv.textContent = 
-                `Очікувалося: ${JSON.stringify(ev.expected, null, 2)}\n` +
-                `Отримано: ${JSON.stringify(ev.actual, null, 2)}`;
-            
-            li.appendChild(spoilerDiv);
-
-            li.addEventListener('click', () => {
-                const isVisible = spoilerDiv.style.display === 'block';
-                spoilerDiv.style.display = isVisible ? 'none' : 'block';
-                li.classList.toggle('active', !isVisible);
-            });
-
-            container.appendChild(li);
-        });
-    } else {
-        const li = document.createElement('li');
-        li.className = 'empty';
-        li.textContent = 'Всі custom_properties співпали.';
-        container.appendChild(li);
-    }
-}
 function displayHarCustomEvents(harEventsArray) {
     const container = document.getElementById('har-custom-events');
     if (!container) return;
     container.innerHTML = '';
 
-    // 🔘 додаємо кнопку "Приховати дублікати / Показати всі"
     const toggleBtn = document.createElement('button');
-    toggleBtn.textContent = 'Приховати дублікати';
     toggleBtn.className = 'toggle-btn';
-    container.parentNode.insertBefore(toggleBtn, container);
 
     let hideDuplicates = true;
+    toggleBtn.textContent = 'Показати всі';
+
+    container.parentNode.insertBefore(toggleBtn, container);
+
 
     function renderList() {
         container.innerHTML = '';
@@ -589,12 +551,11 @@ function displayHarCustomEvents(harEventsArray) {
     }
 
     // Обробка кліку по кнопці
-    toggleBtn.addEventListener('click', () => {
-        hideDuplicates = !hideDuplicates;
-        toggleBtn.textContent = hideDuplicates ? 'Приховати дублікати' : 'Показати всі';
-        renderList();
-    });
-
+        toggleBtn.addEventListener('click', () => {
+                hideDuplicates = !hideDuplicates;
+                toggleBtn.textContent = hideDuplicates ? 'Показати всі' : 'Приховати дублікати';
+                renderList();
+        });
     renderList();
 }
 
