@@ -510,76 +510,60 @@ function displayInvalidEvents(events) {
 }
 function displayHarCustomEvents(harEventsArray) {
     const container = document.getElementById('har-custom-events');
-    if (!container) {
-        console.warn('har-custom-events not found in DOM');
-        return;
-    }
+    if (!container) return;
     container.innerHTML = '';
 
-    let hideDuplicates = false;
+    const eventsWithCustom = harEventsArray.filter(e => e.customProps);
 
-    // Кнопка для приховування дублів
-    const toggleBtn = document.createElement('button');
-    toggleBtn.textContent = 'Приховати дублі';
-    toggleBtn.style.marginBottom = '10px';
-    toggleBtn.onclick = () => {
-        hideDuplicates = !hideDuplicates;
-        renderList();
-        toggleBtn.textContent = hideDuplicates ? 'Показати всі' : 'Приховати дублі';
-    };
-    container.appendChild(toggleBtn);
-
-    function renderList() {
-        // очищаємо все крім кнопки
-        container.querySelectorAll('li').forEach(li => li.remove());
-
-        let eventsWithCustom = harEventsArray.filter(e => e.customProps);
-
-        if (hideDuplicates) {
-            const latestEvents = new Map();
-            for (const ev of eventsWithCustom) {
-                if (!latestEvents.has(ev.type) || (ev.timestamp > latestEvents.get(ev.type).timestamp)) {
-                    latestEvents.set(ev.type, ev);
-                }
-            }
-            eventsWithCustom = Array.from(latestEvents.values());
-        }
-
-        if (eventsWithCustom.length > 0) {
-            eventsWithCustom.forEach(ev => {
-                const li = document.createElement('li');
-
-                const eventNameSpan = document.createElement('span');
-                let timeStr = '';
-                if (ev.timestamp) {
-                    const date = new Date(ev.timestamp);
-                    timeStr = ` (${date.toLocaleTimeString('uk-UA')})`;
-                }
-                eventNameSpan.textContent = ev.type + timeStr;
-                li.appendChild(eventNameSpan);
-
-                const propsDiv = document.createElement('div');
-                propsDiv.className = 'spoiler-content';
-                propsDiv.innerHTML = `<pre><code>${JSON.stringify(ev.customProps, null, 2)}</code></pre>`;
-                li.appendChild(propsDiv);
-
-                li.addEventListener('click', () => {
-                    const isVisible = propsDiv.style.display === 'block';
-                    propsDiv.style.display = isVisible ? 'none' : 'block';
-                    li.classList.toggle('active', !isVisible);
-                });
-
-                container.appendChild(li);
-            });
-        } else {
+    if (eventsWithCustom.length > 0) {
+        eventsWithCustom.forEach(ev => {
             const li = document.createElement('li');
-            li.className = 'empty';
-            li.textContent = 'У HAR-файлі немає івентів з custom_properties.';
-            container.appendChild(li);
-        }
-    }
 
-    renderList();
+            // Назва івента з часом
+            const eventNameSpan = document.createElement('span');
+            const date = new Date(ev.timestamp || 0);
+            const timeStr = ev.timestamp ? ` (${date.toLocaleTimeString()})` : '';
+            eventNameSpan.textContent = ev.type + timeStr;
+            li.appendChild(eventNameSpan);
+
+            // Спойлер з JSON
+            const propsDiv = document.createElement('div');
+            propsDiv.className = 'spoiler-content';
+
+            const pre = document.createElement('pre');
+            pre.textContent = JSON.stringify(ev.customProps, null, 2);
+            propsDiv.appendChild(pre);
+
+            
+            const copyBtn = document.createElement('button');
+            copyBtn.textContent = 'Copy JSON';
+            copyBtn.className = 'copy-btn';
+            copyBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // щоб не згортати/розгортати спойлер
+                navigator.clipboard.writeText(pre.textContent)
+                  .then(() => {
+                      copyBtn.textContent = 'Copied!';
+                      setTimeout(() => copyBtn.textContent = 'Copy JSON', 1500);
+                  });
+            });
+            propsDiv.appendChild(copyBtn);
+
+            li.appendChild(propsDiv);
+
+            li.addEventListener('click', () => {
+                const isVisible = propsDiv.style.display === 'block';
+                propsDiv.style.display = isVisible ? 'none' : 'block';
+                li.classList.toggle('active', !isVisible);
+            });
+
+            container.appendChild(li);
+        });
+    } else {
+        const li = document.createElement('li');
+        li.className = 'empty';
+        li.textContent = 'У HAR-файлі немає івентів з custom_properties.';
+        container.appendChild(li);
+    }
 }
 
 
