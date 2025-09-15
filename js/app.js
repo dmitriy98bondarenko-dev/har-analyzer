@@ -139,20 +139,21 @@ for (const [eventType, info] of knownEventsMap.entries()) {
     const match = harEventsArray.find(e => e.type === eventType);
 
     if (!match) {
-        missingEvents.push(eventType);
-    } else if (info.customProps) {
-        // Перевіряємо custom_properties
-        const allMatch = Object.entries(info.customProps).every(
-            ([key, val]) => match.customProps && match.customProps[key] === val
-        );
-
-        if (!allMatch) {
-            invalidEvents.push({
-                type: eventType,
-                expected: info.customProps,
-                actual: match.customProps
-            });
-        }
+            missingEvents.push(eventType);
+    } else {
+    // Якщо івент є і у таблиці очікувались customProps → перевіряємо
+            if (info.customProps) {
+                    const allMatch = Object.entries(info.customProps).every(
+                            ([key, val]) => match.customProps && match.customProps[key] === val
+                    );
+                    if (!allMatch) {
+                            invalidEvents.push({
+                                    type: eventType,
+                                    expected: info.customProps,
+                                    actual: match.customProps
+                            });
+                    }
+            }
     }
 }
 
@@ -160,10 +161,10 @@ for (const [eventType, info] of knownEventsMap.entries()) {
 const unknownEvents = harEventsArray
     .map(e => e.type)
     .filter(eventType => !knownEventsMap.has(eventType));
-
-displayMissingEvents(missingEvents, knownEventsMap);
-displayUnknownEvents(unknownEvents);
-displayInvalidEvents(invalidEvents);
+                            displayMissingEvents(missingEvents, knownEventsMap);
+                            displayUnknownEvents(unknownEvents);
+                            displayInvalidEvents(invalidEvents);
+                            displayHarCustomEvents(harEventsArray);
 
 
                         // После анализа отправляем отчет
@@ -469,28 +470,82 @@ function findUserId(harData) {
                 unknownEventList.appendChild(li);
             }
         }
+
 function displayInvalidEvents(events) {
     const container = document.getElementById('invalid-event-list');
-         if (!container) {
-    console.warn('invalid-event-list not found in DOM');
-    return;
-  }
+    if (!container) {
+        console.warn('invalid-event-list not found in DOM');
+        return;
+    }
     container.innerHTML = '';
 
     if (events.length > 0) {
         events.forEach(ev => {
             const li = document.createElement('li');
-            li.innerHTML = `
-                <strong>${ev.type}</strong><br>
-                Очікувалося: ${JSON.stringify(ev.expected)}<br>
-                Отримано: ${JSON.stringify(ev.actual)}
-            `;
+
+            const title = document.createElement('strong');
+            title.textContent = ev.type;
+            li.appendChild(title);
+
+            const spoilerDiv = document.createElement('div');
+            spoilerDiv.className = 'spoiler-content';
+            spoilerDiv.textContent = 
+                `Очікувалося: ${JSON.stringify(ev.expected, null, 2)}\n` +
+                `Отримано: ${JSON.stringify(ev.actual, null, 2)}`;
+            
+            li.appendChild(spoilerDiv);
+
+            li.addEventListener('click', () => {
+                const isVisible = spoilerDiv.style.display === 'block';
+                spoilerDiv.style.display = isVisible ? 'none' : 'block';
+                li.classList.toggle('active', !isVisible);
+            });
+
             container.appendChild(li);
         });
     } else {
         const li = document.createElement('li');
         li.className = 'empty';
         li.textContent = 'Всі custom_properties співпали.';
+        container.appendChild(li);
+    }
+}
+function displayHarCustomEvents(harEventsArray) {
+    const container = document.getElementById('har-custom-events');
+    if (!container) {
+        console.warn('har-custom-events not found in DOM');
+        return;
+    }
+    container.innerHTML = '';
+
+    const eventsWithCustom = harEventsArray.filter(e => e.customProps);
+
+    if (eventsWithCustom.length > 0) {
+        eventsWithCustom.forEach(ev => {
+            const li = document.createElement('li');
+
+            const eventNameSpan = document.createElement('span');
+            eventNameSpan.textContent = ev.type;
+            li.appendChild(eventNameSpan);
+
+            const propsDiv = document.createElement('div');
+                propsDiv.className = 'spoiler-content';
+                propsDiv.innerHTML = `<pre><code>custom_properties: ${JSON.stringify(ev.customProps, null, 2)}</code></pre>`;
+                li.appendChild(propsDiv);
+
+
+            li.addEventListener('click', () => {
+                const isVisible = propsDiv.style.display === 'block';
+                propsDiv.style.display = isVisible ? 'none' : 'block';
+                li.classList.toggle('active', !isVisible);
+            });
+
+            container.appendChild(li);
+        });
+    } else {
+        const li = document.createElement('li');
+        li.className = 'empty';
+        li.textContent = 'У HAR-файлі немає івентів з custom_properties.';
         container.appendChild(li);
     }
 }
