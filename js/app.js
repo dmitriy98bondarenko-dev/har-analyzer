@@ -1,20 +1,32 @@
-        const fileInput = document.getElementById('har-file-input');
-        const missingEventList = document.getElementById('missing-event-list');
-        const unknownEventList = document.getElementById('unknown-event-list');
-        const deviceInfoDetails = document.getElementById('device-info-details');
-        const fileNameSpan = document.getElementById('file-name');
-        const statusMessage = document.getElementById('status-message');
-        const sheetUrlInput = document.getElementById('sheet-url-input');
-        const compareButton = document.getElementById('compare-button');
+//app.js
+import { showAlert } from './ui.js';
+import { findEventTypesAdvanced, renderEventList, attachEventSpoiler } from './har-utils.js';
+document.addEventListener('DOMContentLoaded', () => {
+    const missingEventsSection = document.getElementById('missing-events-section');
+    const unknownEventsSection = document.getElementById('unknown-events-section');
+    const harCustomEventsSection = document.getElementById('har-custom-events-section');
 
-        let selectedHarFile = null;
-let hideUnknownDuplicates = true;
-let hideDuplicates = true;
+    const fileInput = document.getElementById('har-file-input');
+    const missingEventList = document.getElementById('missing-event-list');
+    const unknownEventList = document.getElementById('unknown-event-list');
+    const deviceInfoDetails = document.getElementById('device-info-details');
+    const fileNameSpan = document.getElementById('file-name');
+    const statusMessage = document.getElementById('status-message');
+    const sheetUrlInput = document.getElementById('sheet-url-input');
+    const compareButton = document.getElementById('compare-button');
+    missingEventsSection.classList.add('hidden');
+    unknownEventsSection.classList.add('hidden');
+    harCustomEventsSection.classList.add('hidden');
 
-        fileInput.addEventListener('change', handleFileSelect);
-        sheetUrlInput.addEventListener('input', updateButtonState);
-        compareButton.addEventListener('click', startComparison);
-        
+    let selectedHarFile = null;
+    let hideUnknownDuplicates = true;
+    let hideDuplicates = true;
+
+    fileInput.addEventListener('change', handleFileSelect);
+    sheetUrlInput.addEventListener('input', updateButtonState);
+    compareButton.addEventListener('click', startComparison);
+
+
         function updateButtonState() {
             const urlEntered = sheetUrlInput.value.trim() !== '';
             const fileSelected = selectedHarFile !== null;
@@ -133,47 +145,52 @@ let hideDuplicates = true;
                         displayDeviceInfo(deviceInfo, appVersion, userId);
                         
                         const harEventsArray = findEventTypesAdvanced(harData);
-
-const missingEvents = [];
-const invalidEvents = [];
+                        const missingEvents = [];
+                        const invalidEvents = [];
+                        const foundEvents = [];
 
 // Перевіряємо кожен івент з таблиці
-for (const [eventType, info] of knownEventsMap.entries()) {
-    const match = harEventsArray.find(e => e.type === eventType);
+                        for (const [eventType, info] of knownEventsMap.entries()) {
+                            const match = harEventsArray.find(e => e.type === eventType);
 
-    if (!match) {
-            missingEvents.push(eventType);
-    } else {
-    // Якщо івент є і у таблиці очікувались customProps → перевіряємо
-            if (info.customProps) {
-                    const allMatch = Object.entries(info.customProps).every(
-                            ([key, val]) => match.customProps && match.customProps[key] === val
-                    );
-                    if (!allMatch) {
-                            invalidEvents.push({
-                                    type: eventType,
-                                    expected: info.customProps,
-                                    actual: match.customProps
-                            });
-                    }
-            }
-    }
-}
+                            if (!match) {
+                                missingEvents.push(eventType);
+                            } else {
+                                foundEvents.push(match);
+
+                                if (info.customProps) {
+                                    const allMatch = Object.entries(info.customProps).every(
+                                        ([key, val]) => match.customProps && match.customProps[key] === val
+                                    );
+                                    if (!allMatch) {
+                                        invalidEvents.push({
+                                            type: eventType,
+                                            expected: info.customProps,
+                                            actual: match.customProps
+                                        });
+                                    }
+                                }
+                            }
+                        }
+
 
 // Події з HAR, яких немає в таблиці
 const unknownEvents = harEventsArray
     .map(e => e.type)
     .filter(eventType => !knownEventsMap.has(eventType));
-                            displayMissingEvents(missingEvents, knownEventsMap);
-                            displayUnknownEvents(harEventsArray, knownEventsMap);
-                            displayHarCustomEvents(harEventsArray);
+                        displayFoundEvents(foundEvents);
+                        displayMissingEvents(missingEvents, knownEventsMap);
+                        displayUnknownEvents(harEventsArray, knownEventsMap);
+                        displayHarCustomEvents(harEventsArray);
 
+                        missingEventsSection.classList.remove('hidden');
+                        unknownEventsSection.classList.remove('hidden');
+                        harCustomEventsSection.classList.remove('hidden');
 
-                        // После анализа отправляем отчет
-                        sendEmailReport(missingEvents, unknownEvents, userUrl, deviceInfo, appVersion, userId, selectedHarFile, statusMessage);
-
+                        showAlert(`Порівняння завершено. Знайдено ${foundEvents.length} івентів з таблиці.`, 'success');
 
                     } catch (error) {
+                        showAlert('Помилка при читанні HAR файлу', 'error');
                         displayError("Помилка! Не вдалося прочитати файл. Переконайтеся, що це коректний .har (JSON) файл.");
                         console.error("Ошибка парсинга HAR файла:", error);
                     }
@@ -308,72 +325,6 @@ function findUserId(harData) {
   return userId;
 }
 
-        function findEventTypesAdvanced(harData) {
-                const foundEvents = [];
-                const searchKey = 'event_type';
-                
-                function recursiveSearch(obj) {
-                        if (typeof obj !== 'object' || obj === null) return;
-                        
-                        if (searchKey in obj) {
-                                foundEvents.push({
-                                        type: String(obj[searchKey]),
-                                        customProps: obj.custom_properties || null,
-                                        timestamp: obj.event_timestamp || null
-                                });
-                        }
-                        for (const k in obj) {
-                                if (obj.hasOwnProperty(k)) recursiveSearch(obj[k]);
-                        }
-                }
-                
-                function parseUrlEncoded(text) {
-                        try {
-                                const params = new URLSearchParams(text);
-                                if (params.has(searchKey)) {
-                                        foundEvents.push({
-                                                type: params.get(searchKey),
-                                                customProps: null,
-                                                timestamp: null
-                                        });
-                                }
-                        } catch(e) { /* ігноруємо */ }
-                }
-                if (harData?.log?.entries) {
-                        for (const entry of harData.log.entries) {
-                                if (entry.request?.url) {
-                                        try {
-                                                const url = new URL(entry.request.url);
-                                                if (url.searchParams.has(searchKey)) {
-                                                        foundEvents.push({
-                                                                type: url.searchParams.get(searchKey),
-                                                                customProps: null,
-                                                                timestamp: null
-                                                        });
-                                                }
-                                        } catch(e) {}
-                                }
-                                if (entry.request?.postData?.text) {
-                                  const text = entry.request.postData.text;
-                                  try {
-                    recursiveSearch(JSON.parse(text));
-                } catch (e) {
-                    parseUrlEncoded(text);
-                }
-            }
-
-            if (entry.response?.content?.text) {
-                try {
-                    recursiveSearch(JSON.parse(entry.response.content.text));
-                } catch (e) {}
-            }
-        }
-    }
-
-    return foundEvents;
-}
-
-
         function displayDeviceInfo(deviceInfo, appVersion, userId) {
             deviceInfoDetails.innerHTML = '';
             let infoFound = false;
@@ -408,7 +359,26 @@ function findUserId(harData) {
             }
         }
 
-        function displayMissingEvents(events, knownEventsMap) {
+    function displayFoundEvents(foundEvents) {
+        let container = document.getElementById('found-events-list');
+        if (!container) {
+            const section = document.createElement('section');
+            section.id = 'found-events-section';
+            section.className = 'results-section';
+            section.innerHTML = `
+      <h2>Івенти з таблиці, які знайдено у HAR файлі:</h2>
+      <ul id="found-events-list"></ul>
+    `;
+            const deviceInfoContainer = document.getElementById('device-info-container');
+            deviceInfoContainer.insertAdjacentElement('afterend', section);
+
+            container = section.querySelector('ul');
+        }
+
+        renderEventList(container, foundEvents, `Івенти з таблиці, які знайдено у HAR файлі`);
+    }
+
+    function displayMissingEvents(events, knownEventsMap) {
     missingEventList.innerHTML = '';
 
     if (events.length > 0) {
@@ -431,26 +401,7 @@ function findUserId(harData) {
             const info = knownEventsMap.get(eventType);
             const description = info?.description || 'Опис для цієї події не знайдено в таблиці.';
 
-            const spoilerDiv = document.createElement('div');
-            spoilerDiv.className = 'spoiler-content';
-
-            // Основний опис
-            let spoilerHtml = description;
-
-            // Якщо є custom_properties у таблиці → додаємо форматований блок
-            if (info?.customProps) {
-                spoilerHtml += `\n\nОчікувані custom_properties:\n${JSON.stringify(info.customProps, null, 2)}`;
-            }
-
-            spoilerDiv.textContent = spoilerHtml;
-            li.appendChild(spoilerDiv);
-
-            li.addEventListener('click', () => {
-                const isVisible = spoilerDiv.style.display === 'block';
-                spoilerDiv.style.display = isVisible ? 'none' : 'block';
-                li.classList.toggle('active', !isVisible);
-            });
-
+            attachEventSpoiler(li, eventNameSpan, info?.customProps);
             missingEventList.appendChild(li);
         });
     } else {
@@ -467,153 +418,18 @@ if (titleMissing) {
 
 }
 
-function displayUnknownEvents(harEventsArray, knownEventsMap) {
-    const container = unknownEventList;
-    container.innerHTML = '';
-
-    // 🔹 знаходимо всі unknown events
-    let unknownEventsRaw = harEventsArray.filter(ev => !knownEventsMap.has(ev.type));
-
-    // 🔹 додаємо кнопку тільки один раз
-    let toggleBtn = document.querySelector('#toggle-unknown-btn');
-    if (!toggleBtn) {
-        toggleBtn = document.createElement('button');
-        toggleBtn.id = 'toggle-unknown-btn';
-        toggleBtn.className = 'toggle-btn';
-        toggleBtn.textContent = 'Показати всі';
-        container.parentNode.insertBefore(toggleBtn, container);
-
-        toggleBtn.addEventListener('click', () => {
-            hideUnknownDuplicates = !hideUnknownDuplicates;
-            toggleBtn.textContent = hideUnknownDuplicates ? 'Показати всі' : 'Приховати дублікати';
-            renderList();
-        });
+    function displayUnknownEvents(harEventsArray, knownEventsMap) {
+        const unknownEvents = harEventsArray.filter(ev => !knownEventsMap.has(ev.type));
+        renderEventList(unknownEventList, unknownEvents, 'Івенти, знайдені у файлі, але відсутні у таблиці');
     }
 
+    function displayHarCustomEvents(harEventsArray) {
+        const container = document.getElementById('har-custom-events');
+        if (!container) return;
 
-    function renderList() {
-        container.innerHTML = '';
-        let eventsToShow = [...unknownEventsRaw];
-
-        if (hideUnknownDuplicates) {
-            // залишаємо останній timestamp кожного type
-            const latestEvents = new Map();
-            for (const ev of unknownEventsRaw) {
-                if (
-                    !latestEvents.has(ev.type) ||
-                    (ev.timestamp || 0) > (latestEvents.get(ev.type).timestamp || 0)
-                ) {
-                    latestEvents.set(ev.type, ev);
-                }
-            }
-            eventsToShow = [...latestEvents.values()];
-        }
-
-        if (eventsToShow.length > 0) {
-            eventsToShow.forEach(ev => {
-                const li = document.createElement('li');
-                const date = ev.timestamp ? new Date(Number(ev.timestamp)) : null;
-                const timeStr = date ? ` (${date.toLocaleTimeString()})` : '';
-                li.textContent = ev.type + timeStr;
-                container.appendChild(li);
-            });
-        } else {
-            const li = document.createElement('li');
-            li.className = 'empty';
-            li.textContent = 'Нових/невідомих подій у файлі не знайдено.';
-            container.appendChild(li);
-        }
-
-        // 🔹 оновлюємо лічильник у заголовку
-        const title = document.querySelector('#unknown-results-container h2');
-        if (title) {
-            title.textContent = `Івенти, знайдені у файлі, але відсутні у таблиці (${eventsToShow.length}):`;
-        }
+        const eventsWithCustom = harEventsArray.filter(e => e.customProps);
+        renderEventList(container, eventsWithCustom, 'Івенти з HAR-файлу в котрих наявний custom_properties');
     }
-
-    renderList();
-}
-
-function displayHarCustomEvents(harEventsArray) {
-    const container = document.getElementById('har-custom-events');
-    if (!container) return;
-
-    // 🔹 при кожному виклику — очищаємо контейнер
-    container.innerHTML = '';
-
-    // 🔹 перевіряємо чи кнопка вже є
-    let toggleBtn = document.querySelector('#toggle-duplicates-btn');
-    if (!toggleBtn) {
-        toggleBtn = document.createElement('button');
-        toggleBtn.id = 'toggle-duplicates-btn'; // унікальний id
-        toggleBtn.className = 'toggle-btn';
-        toggleBtn.textContent = 'Показати всі';
-        container.parentNode.insertBefore(toggleBtn, container);
-
-        // логіка перемикання тільки один раз
-        toggleBtn.addEventListener('click', () => {
-            hideDuplicates = !hideDuplicates;
-            toggleBtn.textContent = hideDuplicates ? 'Показати всі' : 'Приховати дублікати';
-            renderList();
-        });
-    }
-
-
-    function renderList() {
-        container.innerHTML = '';
-        let eventsWithCustom = harEventsArray.filter(e => e.customProps);
-
-        if (hideDuplicates) {
-            const latestEvents = new Map();
-            for (const ev of eventsWithCustom) {
-                if (!latestEvents.has(ev.type) || (ev.timestamp || 0) > (latestEvents.get(ev.type).timestamp || 0)) {
-                    latestEvents.set(ev.type, ev);
-                }
-            }
-            eventsWithCustom = [...latestEvents.values()];
-        }
-
-        if (eventsWithCustom.length > 0) {
-            eventsWithCustom.forEach(ev => {
-                const li = document.createElement('li');
-                const eventNameSpan = document.createElement('span');
-                const date = new Date(ev.timestamp || 0);
-                const timeStr = ev.timestamp ? ` (${date.toLocaleTimeString()})` : '';
-                eventNameSpan.textContent = ev.type + timeStr;
-                li.appendChild(eventNameSpan);
-
-                const propsDiv = document.createElement('div');
-                propsDiv.className = 'spoiler-content';
-                const pre = document.createElement('pre');
-                pre.textContent = JSON.stringify(ev.customProps, null, 2);
-                propsDiv.appendChild(pre);
-
-                li.appendChild(propsDiv);
-
-                li.addEventListener('click', () => {
-                    const isVisible = propsDiv.style.display === 'block';
-                    propsDiv.style.display = isVisible ? 'none' : 'block';
-                    li.classList.toggle('active', !isVisible);
-                });
-
-                container.appendChild(li);
-            });
-        } else {
-            const li = document.createElement('li');
-            li.className = 'empty';
-            li.textContent = 'У HAR-файлі немає івентів з custom_properties.';
-            container.appendChild(li);
-        }
-            // каунтер івентів
-const titleCustom = document.querySelector('#har-custom-events').parentNode.querySelector('h2');
-if (titleCustom) {
-    titleCustom.textContent = `Івенти з HAR-файлу в котрих наявний custom_properties (${eventsWithCustom.length}):`;
-}
-
-    }
-
-    renderList();
-}
 
         
         function displayError(message) {
@@ -631,4 +447,11 @@ if (titleCustom) {
             deviceInfoDetails.appendChild(li);
         }
 
-        //test commit
+
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.spoiler-content')) {
+                e.stopPropagation();
+            }
+        });
+
+});

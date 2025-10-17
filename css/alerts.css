@@ -1,0 +1,127 @@
+.alerts-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 9999;
+}
+
+.alert {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    animation: fadeIn 0.3s ease;
+}
+
+.alert__icon svg {
+    display: block;
+}
+
+.alert__close {
+    margin-left: auto;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px;
+}
+
+.alert--success {
+    background: #4caf50;
+}
+
+.alert--error {
+    background: #f44336;
+}
+
+.alert--info {
+    background: #2196f3;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/**/
+#alertsContainer {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 9999;
+}
+
+.alert {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 280px;
+    max-width: 400px;
+    padding: 12px 14px;
+    border-radius: 6px;
+    color: #fff;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    transform: translateY(-10px);
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.alert.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.alert.hide {
+    opacity: 0;
+    transform: translateY(-10px);
+}
+
+.alert-icon-svg {
+    width: 20px;
+    height: 20px;
+}
+
+.close-icon-svg {
+    width: 18px;
+    height: 18px;
+}
+
+.alert-close {
+    background: transparent;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    line-height: 1;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.2s ease;
+}
+
+.alert-close:hover {
+    opacity: 0.7;
+}
+
+/* Типы */
+.alert-success {
+    background-color: #34c759;
+}
+
+.alert-error {
+    background-color: #d93025;
+}
+
+.alert-info {
+    background-color: #3b82f6;
+}
