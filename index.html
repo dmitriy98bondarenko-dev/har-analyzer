@@ -22,14 +22,17 @@
   <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 </head>
 <body>
-  <button id="theme-toggle">🌓 Змінити тему</button>
-
+  <div class="theme-toggle">
+      <input type="checkbox" id="themeToggleSwitch" class="theme-toggle-input" />
+      <label for="themeToggleSwitch" class="theme-toggle-label"></label>
+  </div>
 
   <h1>.HAR Checker 🕵🏻‍♂️</h1>
-
   <div class="input-group">
-    <label for="sheet-url-input">URL Google Таблиці:</label>
-    <input type="url" id="sheet-url-input" placeholder="Вставте посилання на публічну Google Таблицю...">
+      <label for="sheet-url-input">URL Google Таблиці:</label>
+      <div class="url-input-wrapper">
+          <input type="url" id="sheet-url-input" placeholder="Вставте посилання на публічну Google Таблицю...">
+      </div>
   </div>
 
   <div class="controls-wrapper">
@@ -41,6 +44,7 @@
 
   <div id="file-name">Файл не обрано</div>
   <div id="status-message"></div>
+  <div id="sheet-preview" class="sheet-preview hidden"></div>
 
   <div id="device-info-container" class="results-section">
     <h2>Інформація про пристрій та версію:</h2>

@@ -1,5 +1,7 @@
-import { findEventTypesAdvanced, renderEventList } from './har-utils.js';
+import { findEventTypesAdvanced, renderEventList, findUserId, findDeviceObject, findAppVersion, displayDeviceInfo}
+    from './har-utils.js';
 import { showAlert } from './ui.js';
+
 
 const compareButton = document.getElementById('compare-button');
 const fileInput = document.getElementById('har-file-input');
@@ -44,7 +46,14 @@ analyzeButton.addEventListener('click', () => {
                 .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
 
             renderEventList(analysisList, harEvents, 'Повний список івентів');
+
+            const deviceInfo = findDeviceObject(harData);
+            const appVersion = findAppVersion(harData);
+            const userId = findUserId(harData);
+
+            displayDeviceInfo(deviceInfo, appVersion, userId);
             showAlert(`Аналіз завершено. Знайдено ${harEvents.length} івентів`, 'success');
+
         } catch (err) {
             showAlert('Не вдалося проаналізувати файл. Переконайтеся, що це .har', 'error');
             console.error(err);

@@ -174,3 +174,165 @@ export function attachEventSpoiler(li, customProps) {
         li.classList.toggle('active', !isVisible);
     });
 }
+
+export function findDeviceObject(harData) {
+    let deviceObject = null;
+    const requiredKeys = ['brand', 'model', 'os_version', 'os'];
+
+    function recursiveDeviceSearch(obj) {
+        if (deviceObject) return; // Stop if already found
+        if (typeof obj !== 'object' || obj === null) return;
+
+        if (obj.hasOwnProperty('device')) {
+            const potentialDevice = obj.device;
+            const hasAllKeys = requiredKeys.every(key => potentialDevice.hasOwnProperty(key));
+            if (hasAllKeys) {
+                deviceObject = potentialDevice;
+                return;
+            }
+        }
+
+        for (const k in obj) {
+            if (obj.hasOwnProperty(k)) {
+                recursiveDeviceSearch(obj[k]);
+            }
+        }
+    }
+
+    if (harData && harData.log && harData.log.entries) {
+        for (const entry of harData.log.entries) {
+            if (deviceObject) break;
+            const textSources = [];
+            if (entry.request?.postData?.text) textSources.push(entry.request.postData.text);
+            if (entry.response?.content?.text) textSources.push(entry.response.content.text);
+
+            for (const text of textSources) {
+                try {
+                    recursiveDeviceSearch(JSON.parse(text));
+                    if(deviceObject) break;
+                } catch (e) { /* ignore */ }
+            }
+        }
+    }
+    return deviceObject;
+}
+
+export function findAppVersion(harData) {
+    let appVersion = null;
+
+    function recursiveSearch(obj) {
+        if (appVersion) return; // Stop if already found
+        if (typeof obj !== 'object' || obj === null) return;
+
+        if (obj.hasOwnProperty('app') && typeof obj.app === 'object' && obj.app !== null && obj.app.hasOwnProperty('version')) {
+            appVersion = obj.app.version;
+            return;
+        }
+
+        if (obj.hasOwnProperty('event_type') && obj.event_type === 'app' && obj.hasOwnProperty('version')) {
+            appVersion = obj.version;
+            return;
+        }
+
+        for (const k in obj) {
+            if (obj.hasOwnProperty(k)) {
+                recursiveSearch(obj[k]);
+            }
+        }
+    }
+
+    if (harData && harData.log && harData.log.entries) {
+        for (const entry of harData.log.entries) {
+            if (appVersion) break;
+            const textSources = [];
+            if (entry.request?.postData?.text) textSources.push(entry.request.postData.text);
+            if (entry.response?.content?.text) textSources.push(entry.response.content.text);
+
+            for (const text of textSources) {
+                try {
+                    recursiveSearch(JSON.parse(text));
+                    if (appVersion) break;
+                } catch (e) { /* ignore */ }
+            }
+        }
+    }
+    return appVersion;
+}
+
+export function findUserId(harData) {
+    let userId = null;
+
+    function recursiveSearch(obj) {
+        if (userId) return;
+        if (typeof obj !== 'object' || obj === null) return;
+
+        if (obj.hasOwnProperty('user_id') && typeof obj.user_id === 'string') {
+            userId = obj.user_id;
+            return;
+        }
+
+        for (const key in obj) {
+            if (obj.hasOwnProperty(key)) {
+                recursiveSearch(obj[key]);
+            }
+        }
+    }
+
+    if (harData?.log?.entries) {
+        for (const entry of harData.log.entries) {
+            if (userId) break;
+
+            const textSources = [];
+            if (entry.request?.postData?.text) textSources.push(entry.request.postData.text);
+            if (entry.response?.content?.text) textSources.push(entry.response.content.text);
+
+            for (const text of textSources) {
+                try {
+                    recursiveSearch(JSON.parse(text));
+                    if (userId) break;
+                } catch (e) {}
+            }
+        }
+    }
+
+    return userId;
+}
+
+export function displayDeviceInfo(deviceInfo, appVersion, userId) {
+    const deviceInfoDetails = document.getElementById('device-info-details');
+    if (!deviceInfoDetails) {
+        console.warn('Елемент #device-info-details не знайдено');
+        return;
+    }
+    deviceInfoDetails.innerHTML = '';
+    let infoFound = false;
+    if (deviceInfo) {
+        infoFound = true;
+        for (const key in deviceInfo) {
+            if (deviceInfo.hasOwnProperty(key)) {
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>${key}:</strong> ${deviceInfo[key]}`;
+                deviceInfoDetails.appendChild(li);
+            }
+        }
+    }
+    if (appVersion) {
+        infoFound = true;
+        const li = document.createElement('li');
+        li.innerHTML = `<strong>app version:</strong> ${appVersion}`;
+        deviceInfoDetails.appendChild(li);
+    }
+    if (userId) {
+        infoFound = true;
+        const li = document.createElement('li');
+        li.innerHTML = `<strong>User ID:</strong> ${userId}`;
+        deviceInfoDetails.appendChild(li);
+    }
+
+    if (!infoFound) {
+        const li = document.createElement('li');
+        li.className = 'empty';
+        li.textContent = 'Інформація про пристрій та версію не знайдена...';
+        deviceInfoDetails.appendChild(li);
+    }
+}

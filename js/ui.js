@@ -1,23 +1,36 @@
 const themeToggle = document.getElementById('theme-toggle');
 const body = document.body;
 
-// Перевірити localStorage
+// check localStorage
 const savedTheme = localStorage.getItem('theme') || 'light';
 body.classList.add(savedTheme + '-theme');
 
-// Перемикач
-themeToggle.addEventListener('click', () => {
-  if (body.classList.contains('light-theme')) {
-    body.classList.remove('light-theme');
-    body.classList.add('dark-theme');
-    localStorage.setItem('theme', 'dark');
-  } else {
-    body.classList.remove('dark-theme');
-    body.classList.add('light-theme');
-    localStorage.setItem('theme', 'light');
-  }
-});
+//theme toggle
+document.addEventListener('DOMContentLoaded', () => {
+    const themeToggle = document.getElementById('themeToggleSwitch');
+    const body = document.body;
 
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    if (savedTheme === 'dark') {
+        body.classList.add('dark-theme');
+        themeToggle.checked = true;
+    } else {
+        body.classList.add('light-theme');
+        themeToggle.checked = false;
+    }
+
+    themeToggle.addEventListener('change', () => {
+        if (themeToggle.checked) {
+            body.classList.remove('light-theme');
+            body.classList.add('dark-theme');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            body.classList.remove('dark-theme');
+            body.classList.add('light-theme');
+            localStorage.setItem('theme', 'light');
+        }
+    });
+});
 
 export function showAlert(message, type = 'info', duration = 5000) {
     const container = document.getElementById('alertsContainer');
@@ -26,7 +39,7 @@ export function showAlert(message, type = 'info', duration = 5000) {
     const alert = document.createElement('div');
     alert.className = `alert alert-${type}`;
 
-    // SVG иконки по типу
+    // svg icons
     const icons = {
         info: `
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="alert-icon-svg">
@@ -45,7 +58,7 @@ export function showAlert(message, type = 'info', duration = 5000) {
         `
     };
 
-    // SVG кнопка закрытия (крестик)
+    // close icon
     const closeSvg = `
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="close-icon-svg">
           <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -71,7 +84,7 @@ export function showAlert(message, type = 'info', duration = 5000) {
 
     container.appendChild(alert);
 
-    // анимация появления
+    // animate alert in
     setTimeout(() => alert.classList.add('show'), 10);
 
     const timer = setTimeout(() => removeAlert(alert), duration);
